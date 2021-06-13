@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "./Header.css";
 import Modal from "@material-ui/core/Modal";
 
-function Header({ favorites, total, onEvent }) {
+function Header({ favorites, total, removeFavorite }) {
     const [modalOpen, setModalOpen] = useState(false);
 
     const body = (
@@ -14,7 +14,7 @@ function Header({ favorites, total, onEvent }) {
                         <p>
                             {repo.name}
                         </p>
-                        <button type="button" onClick={() => onEvent(repo.id)} className="glow-on-hover">
+                        <button type="button" onClick={() => removeFavorite(repo.id)} className="glow-on-hover">
                             Remove
                         </button>
                     </div>

@@ -2,12 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import Header from "./Header";
+import SearchBar from "./SearchBar";
+import ReposList from "./ReposList";
 
 function Repositories() {
     const [repos, setRepos] = useState([]);
     const [favorites, setFavorites] = useState([]);
     const [user, setUser] = useState("");
 
+    /**
+    * This was only created in order not to
+    * show an empty list when we first load the App
+    ***/
     useEffect(() => {
         fetch("https://api.github.com/users/TarekHolanda/repos")
             .then(res => res.json())
@@ -16,11 +22,18 @@ function Repositories() {
             })
     }, [])
 
+    /**
+    * Call the API sending the user as parameter to
+    * get the repositories list owned by the user
+    ***/
     const searchUser = () => {
         fetch("https://api.github.com/users/" + user + "/repos")
             .then(res => res.json())
             .then((result) => {
                 if (result && result.length) {
+                    /**
+                    * Update list to make sure the Favorites are flagged
+                    ***/
                     for (let i = 0; i < favorites.length; i++) {
                         const isRepoFavorite = result.find(item => item.id === favorites[i].id); 
                         if (isRepoFavorite) {
@@ -34,22 +47,37 @@ function Repositories() {
             })
     }
 
+    /**
+    * Update user state when the something is typed on the Search Bar
+    ***/
     const onInputChanged = useCallback(({target: {value}}) => setUser(value), []);
 
+    /**
+    * Check when the Enter key is pressed to make the API call
+    ***/
     const handleKeyPress = (event) => {
-        if (event.key === "Enter") {
+        if (event && event.key === "Enter") {
             searchUser();
         }
     }
-
+    
+    /**
+    * Set or Unset a Repository clicked as Favorite
+    ***/
     const setFavorite = (id) => {
         const repoToFavorite = repos.find(item => item.id === id);
-        repoToFavorite.isFavorite = repoToFavorite.isFavorite ? false : true;
-        setRepos([...repos]);
+        if (repoToFavorite) {
+            repoToFavorite.isFavorite = repoToFavorite.isFavorite ? false : true;
+            setRepos([...repos]);
 
-        if (repoToFavorite.isFavorite) {
-            setFavorites([repoToFavorite, ...favorites]);
+            if (repoToFavorite.isFavorite) {
+                setFavorites([repoToFavorite, ...favorites]);
+            } else {
+                setFavorites([...favorites.filter(item => item.id !== id)]);
+            }
         } else {
+            const repoToRemove = favorites.find(item => item.id === id);
+            repoToRemove.isFavorite = false;
             setFavorites([...favorites.filter(item => item.id !== id)]);
         }
     }
@@ -59,45 +87,18 @@ function Repositories() {
             <Header
                 favorites={favorites}
                 total={repos.length}
-                onEvent={(repoId) => { setFavorite(repoId) }}
+                removeFavorite={(repoId) => { setFavorite(repoId) }}
             />
-            <div className="search-bar">
-                <input
-                    type="text"
-                    name="user"
-                    value={user}
-                    placeholder="GitHub User"
-                    onChange={onInputChanged}
-                    onKeyPress={handleKeyPress}
-                />
-                <button onClick={() => searchUser()} className="glow-on-hover">
-                    Search
-                </button>
-            </div>
-            <div className="body-empty">
-                {repos.length ? "" : "No repositories found."}
-            </div>
-            <div className="body-content">
-                {repos.map((repo, index) => (
-                    <div key={repo.id} className="body-card text-overflow">
-                        {repo.name}
-                        <div>
-                            <div className="text-overflow">
-                                {repo.description}
-                            </div>
-                            <div>
-                                Stars: {repo.stargazers_count}
-                            </div>
-                            <div>
-                                Forks: {repo.forks_count}
-                            </div>
-                        </div>
-                        <button onClick={() => setFavorite(repo.id)} className="glow-on-hover favorite-button">
-                            {repo.isFavorite ? "Remove" : "Add to Favorite"}
-                        </button>
-                    </div>
-                ))}
-            </div>
+            <SearchBar 
+                user={user}
+                updateUser={(user) => { onInputChanged(user) }}
+                keyWasPressed={(event) => { handleKeyPress(event) }}
+                onSearchClick={() => { searchUser() }}
+            />
+            <ReposList
+                repos={repos}
+                setFavorite={(repoId) => { setFavorite(repoId) }}
+            />
         </div>
     );
 }
